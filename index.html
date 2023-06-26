@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Display Webcam Stream</title>
+
+<style>
+#container {
+	margin: 0px auto;
+	width: 500px;
+	height: 375px;
+	border: 10px #333 solid;
+}
+#videoElement {
+	width: 500px;
+	height: 375px;
+	background-color: #666;
+}
+</style>
+</head>
+
+<body>
+<div id="container">
+	<video autoplay="true" id="videoElement">
+
+	</video>
+</div>
+<br>
+<h3>
+<ul>
+<li>press record</li>
+<li>show your passport or identity document neatly, as well as your face</li>
+<li>press stop record</li>
+</ul>
+you will be notified of the identity confirmation after our team processes the video.
+</h3>
+
+<button id="captureFrame">Capture Frame</button>
+<button id="sendFrames">Send Frames</button>
+
+<script>
+var video = document.querySelector("#videoElement");
+if (navigator.mediaDevices.getUserMedia) {
+  navigator.mediaDevices.getUserMedia({ video: true })
+    .then(function (stream) {
+      video.srcObject = stream;
+    })
+    .catch(function (error) {
+      console.log("Something went wrong!");
+    });
+}
+
+function stopStream() {
+  var stream = video.srcObject;
+  var tracks = stream.getTracks();
+  tracks.forEach(function(track) {
+    track.stop();
+  });
+  video.srcObject = null;
+}
+
+document.getElementById("captureFrame").addEventListener("click", captureFrame);
+document.getElementById("sendFrames").addEventListener("click", sendFrames);
+
+function captureFrame() {
+  var video = document.querySelector("#videoElement");
+  var canvas = document.createElement("canvas");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  var ctx = canvas.getContext("2d");
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  var thumbnail = document.createElement("img");
+  thumbnail.src = canvas.toDataURL();
+  thumbnail.style.maxWidth = "100px";
+  thumbnail.style.margin = "10px auto";
+  document.body.appendChild(thumbnail);
+}
+
+function sendFrames() {
+  var video = document.querySelector("#videoElement");
+  var frames = [];
+  var i;
+  while (i < video.videoFrames) {
+    i++;
+    var frameData = video.getVideoFrame(i);
+    if (frameData) {
+      frames.push(frameData);
+    }
+  }
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "http://127.0.0.1:5000/detect_fingers", true);
+    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    xhr.send(JSON.stringify({ frames: frames }));
+}
+</script>
+</body>
+</html>
